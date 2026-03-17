@@ -1,0 +1,88 @@
+*PPD-Adobe: "4.3"
+*%
+*% PPD file for Urovo K329 TSPL2 Label Printer
+*%
+*FormatVersion: "4.3"
+*FileVersion: "2.0"
+*LanguageVersion: English
+*LanguageEncoding: ISOLatin1
+*PCFileName: "K329.PPD"
+
+*Manufacturer: "Urovo"
+*ModelName: "Urovo K329"
+*ShortNickName: "Urovo K329"
+*NickName: "Urovo K329 TSPL2 Label Printer"
+*Product: "(Urovo K329)"
+*PSVersion: "(3010.000) 0"
+
+*LanguageLevel: "3"
+*ColorDevice: False
+*DefaultColorSpace: Gray
+*FileSystem: False
+*Throughput: "1"
+*LandscapeOrientation: Plus90
+*TTRasterizer: Type42
+
+*% === Фильтр ===
+*cupsFilter: "application/pdf 0 urovo-k329"
+
+*% === Разрешение ===
+*DefaultResolution: 203dpi
+*Resolution 203dpi: "<</HWResolution[203 203]>>setpagedevice"
+
+*% === Размеры бумаги (ленты) ===
+*DefaultPageSize: w156h110
+*PageSize w113h85/40x30mm: "<</PageSize[113 85]/ImagingBBox null>>setpagedevice"
+*PageSize w142h113/50x40mm: "<</PageSize[142 113]/ImagingBBox null>>setpagedevice"
+*PageSize w156h110/55x39mm: "<</PageSize[156 110]/ImagingBBox null>>setpagedevice"
+*PageSize w164h113/58x40mm: "<</PageSize[164 113]/ImagingBBox null>>setpagedevice"
+*PageSize w170h113/60x40mm: "<</PageSize[170 113]/ImagingBBox null>>setpagedevice"
+*PageSize w227h142/80x50mm: "<</PageSize[227 142]/ImagingBBox null>>setpagedevice"
+*PageSize w227h170/80x60mm: "<</PageSize[227 170]/ImagingBBox null>>setpagedevice"
+
+*HWMargins: 0 0 0 0
+*VariablePaperSize: True
+*MaxMediaWidth: "227"
+*MaxMediaHeight: "1417"
+*MinMediaWidth: "85"
+*MinMediaHeight: "57"
+*CustomPageSize True: "pop pop pop <</PageSize[5 -2 roll]/ImagingBBox null>>setpagedevice"
+*ParamCustomPageSize Width: 1 points 85 227
+*ParamCustomPageSize Height: 2 points 57 1417
+*ParamCustomPageSize WidthOffset: 3 points 0 0
+*ParamCustomPageSize HeightOffset: 4 points 0 0
+*ParamCustomPageSize Orientation: 5 int 0 0
+
+*DefaultPageRegion: w156h110
+*PageRegion w113h85/40x30mm: "<</PageSize[113 85]/ImagingBBox null>>setpagedevice"
+*PageRegion w142h113/50x40mm: "<</PageSize[142 113]/ImagingBBox null>>setpagedevice"
+*PageRegion w156h110/55x39mm: "<</PageSize[156 110]/ImagingBBox null>>setpagedevice"
+*PageRegion w164h113/58x40mm: "<</PageSize[164 113]/ImagingBBox null>>setpagedevice"
+*PageRegion w170h113/60x40mm: "<</PageSize[170 113]/ImagingBBox null>>setpagedevice"
+*PageRegion w227h142/80x50mm: "<</PageSize[227 142]/ImagingBBox null>>setpagedevice"
+*PageRegion w227h170/80x60mm: "<</PageSize[227 170]/ImagingBBox null>>setpagedevice"
+
+*DefaultImageableArea: w156h110
+*ImageableArea w113h85/40x30mm: "0 0 113 85"
+*ImageableArea w142h113/50x40mm: "0 0 142 113"
+*ImageableArea w156h110/55x39mm: "0 0 156 110"
+*ImageableArea w164h113/58x40mm: "0 0 164 113"
+*ImageableArea w170h113/60x40mm: "0 0 170 113"
+*ImageableArea w227h142/80x50mm: "0 0 227 142"
+*ImageableArea w227h170/80x60mm: "0 0 227 170"
+
+*DefaultPaperDimension: w156h110
+*PaperDimension w113h85/40x30mm: "113 85"
+*PaperDimension w142h113/50x40mm: "142 113"
+*PaperDimension w156h110/55x39mm: "156 110"
+*PaperDimension w164h113/58x40mm: "164 113"
+*PaperDimension w170h113/60x40mm: "170 113"
+*PaperDimension w227h142/80x50mm: "227 142"
+*PaperDimension w227h170/80x60mm: "227 170"
+
+*% === Шрифты ===
+*DefaultFont: Courier
+*Font Courier: Standard "(001.006S)" Standard ROM
+*Font Courier-Bold: Standard "(001.007S)" Standard ROM
+
+*% End of PPD

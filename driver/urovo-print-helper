@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""
+Helper для печати на Urovo K329.
+Работает ВНЕ CUPS sandbox.
+
+Режимы:
+  urovo-print-helper <pdf_path> [copies]     — печать одного файла
+  urovo-print-helper --spool                  — обработка файлов из /var/spool/urovo329/
+"""
+
+import sys
+import os
+import glob
+import time
+import subprocess
+import tempfile
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="urovo-helper: %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("/tmp/urovo-print-helper.log"),
+    ],
+)
+log = logging.getLogger(__name__)
+
+os.environ["DYLD_LIBRARY_PATH"] = "/opt/homebrew/lib:" + os.environ.get("DYLD_LIBRARY_PATH", "")
+# Добавляем все возможные пути к pyusb
+import pwd
+for user_info in pwd.getpwall():
+    user_site = os.path.join(user_info.pw_dir, "Library/Python")
+    if os.path.isdir(user_site):
+        for ver in os.listdir(user_site):
+            sp = os.path.join(user_site, ver, "lib/python/site-packages")
+            if os.path.isdir(sp) and sp not in sys.path:
+                sys.path.insert(0, sp)
+# Также стандартные пути
+for sp in ["/opt/homebrew/lib/python3/dist-packages",
+           "/usr/local/lib/python3/dist-packages"]:
+    if os.path.isdir(sp) and sp not in sys.path:
+        sys.path.insert(0, sp)
+
+USB_VID = 0x1fc9
+USB_PID = 0x009b
+CHUNK_SIZE = 64
+PAUSE_EVERY = 1024
+PAUSE_SEC = 0.05
+
+DPI = 203
+WIDTH = 420
+HEIGHT = 260
+Y_OFFSET = 16
+
+# Определяем путь к Ghostscript
+for _gs in ["/opt/homebrew/bin/gs", "/usr/local/bin/gs"]:
+    if os.path.exists(_gs):
+        GS_BIN = _gs
+        break
+else:
+    GS_BIN = "gs"
+SPOOL_DIR = "/var/spool/urovo329"
+
+
+def pbm_to_tspl(pbm_path):
+    """PBM → TSPL2 BITMAP данные для одной страницы."""
+    with open(pbm_path, "rb") as f:
+        f.readline()  # P4
+        line = f.readline()
+        while line.startswith(b"#"):
+            line = f.readline()
+        width, height = map(int, line.split())
+        bpr = (width + 7) // 8
+        data = f.read()
+
+    inverted = bytes(~b & 0xFF for b in data)
+
+    tspl = b"CLS\r\n"
+    tspl += f"BITMAP 0,{Y_OFFSET},{bpr},{height},1,".encode()
+    tspl += inverted
+    tspl += b"\r\nPRINT 1,1\r\n"
+
+    return tspl
+
+
+def pdf_to_tspl_pages(pdf_path):
+    """PDF → список TSPL данных (по одному на страницу)."""
+    tmp_dir = tempfile.mkdtemp()
+    pbm_pattern = os.path.join(tmp_dir, "page-%03d.pbm")
+
+    subprocess.run([
+        GS_BIN, "-q", "-dNOPAUSE", "-dBATCH", "-dSAFER",
+        "-sDEVICE=pbmraw", f"-r{DPI}",
+        f"-g{WIDTH}x{HEIGHT}",
+        "-dFIXEDMEDIA", "-dPDFFitPage",
+        f"-sOutputFile={pbm_pattern}", pdf_path,
+    ], check=True, capture_output=True)
+
+    # Собираем все страницы
+    pages = []
+    page_num = 1
+    while True:
+        pbm_path = os.path.join(tmp_dir, f"page-{page_num:03d}.pbm")
+        if not os.path.exists(pbm_path):
+            break
+        pages.append(pbm_to_tspl(pbm_path))
+        os.unlink(pbm_path)
+        page_num += 1
+
+    os.rmdir(tmp_dir)
+    log.info("PDF: %d страниц", len(pages))
+    return pages
+
+
+def send_to_printer(data):
+    """Отправка через USB."""
+    import usb.core
+    import usb.util
+
+    dev = usb.core.find(idVendor=USB_VID, idProduct=USB_PID)
+    if dev is None:
+        log.error("Принтер не найден")
+        return 0
+
+    if dev.is_kernel_driver_active(0):
+        dev.detach_kernel_driver(0)
+
+    dev.set_configuration()
+    usb.util.claim_interface(dev, 0)
+
+    sent = 0
+    for i in range(0, len(data), CHUNK_SIZE):
+        dev.write(0x01, data[i:i + CHUNK_SIZE])
+        sent += len(data[i:i + CHUNK_SIZE])
+        if sent % PAUSE_EVERY == 0:
+            time.sleep(PAUSE_SEC)
+
+    time.sleep(1)
+    usb.util.release_interface(dev, 0)
+    usb.util.dispose_resources(dev)
+
+    return sent
+
+
+def print_file(pdf_path, copies=1):
+    """Печать PDF (все страницы)."""
+    log.info("Печать: %s, %d копий", pdf_path, copies)
+    pages = pdf_to_tspl_pages(pdf_path)
+
+    total_sent = 0
+    for copy in range(copies):
+        for page_num, tspl in enumerate(pages, 1):
+            sent = send_to_printer(tspl)
+            total_sent += sent
+            log.info("Стр %d/%d, копия %d/%d: %d байт",
+                     page_num, len(pages), copy + 1, copies, sent)
+            time.sleep(0.3)
+
+    return total_sent
+
+
+def process_spool():
+    """Обработка файлов из spool-папки."""
+    pdfs = sorted(glob.glob(os.path.join(SPOOL_DIR, "*.pdf")))
+
+    if not pdfs:
+        log.debug("Spool пуст")
+        return
+
+    for pdf_path in pdfs:
+        try:
+            # Читаем copies из .meta файла если есть
+            meta_path = pdf_path.replace(".pdf", ".copies")
+            copies = 1
+            if os.path.exists(meta_path):
+                with open(meta_path) as f:
+                    copies = int(f.read().strip())
+                os.unlink(meta_path)
+
+            print_file(pdf_path, copies)
+            os.unlink(pdf_path)
+            log.info("Готово: %s", pdf_path)
+
+        except Exception as e:
+            log.error("Ошибка %s: %s", pdf_path, e)
+            # Удаляем чтобы не зациклиться
+            try:
+                os.unlink(pdf_path)
+            except OSError:
+                pass
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Использование:", file=sys.stderr)
+        print("  urovo-print-helper <pdf_path> [copies]", file=sys.stderr)
+        print("  urovo-print-helper --spool", file=sys.stderr)
+        sys.exit(1)
+
+    if sys.argv[1] == "--spool":
+        process_spool()
+    else:
+        pdf_path = sys.argv[1]
+        copies = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+        sent = print_file(pdf_path, copies)
+        print(f"OK: {sent} bytes, {copies} copies")
+
+
+if __name__ == "__main__":
+    main()

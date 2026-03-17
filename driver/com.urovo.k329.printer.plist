@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.urovo.k329.printer</string>
+    <key>WatchPaths</key>
+    <array>
+        <string>/var/spool/urovo329</string>
+    </array>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/urovo-print-helper</string>
+        <string>--spool</string>
+    </array>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>DYLD_LIBRARY_PATH</key>
+        <string>/opt/homebrew/lib</string>
+    </dict>
+</dict>
+</plist>

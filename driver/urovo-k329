@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""
+CUPS-фильтр для Urovo K329.
+Просто передаёт PDF на backend — вся обработка в backend.
+"""
+
+import sys
+
+def main():
+    if len(sys.argv) < 6:
+        sys.exit(1)
+
+    input_file = sys.argv[6] if len(sys.argv) > 6 else None
+
+    if input_file:
+        with open(input_file, "rb") as f:
+            data = f.read()
+    else:
+        data = sys.stdin.buffer.read()
+
+    sys.stdout.buffer.write(data)
+    sys.stdout.buffer.flush()
+
+if __name__ == "__main__":
+    main()
