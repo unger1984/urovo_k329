@@ -25,11 +25,27 @@ echo "Homebrew: $BREW_PREFIX"
 
 # Зависимости
 echo "Проверка зависимостей..."
-command -v brew >/dev/null || { echo "Нужен Homebrew: https://brew.sh"; exit 1; }
-command -v "$BREW_PREFIX/bin/gs" >/dev/null || { echo "Установка Ghostscript..."; brew install ghostscript; }
-brew list libusb >/dev/null 2>&1 || { echo "Установка libusb..."; brew install libusb; }
-pip3 install --user pyusb >/dev/null 2>&1 || { echo "Не удалось установить pyusb"; exit 1; }
-echo "OK"
+
+command -v python3 >/dev/null || { echo "Python 3 не найден. Установите: xcode-select --install"; exit 1; }
+echo "  Python 3: OK"
+
+if ! command -v "$BREW_PREFIX/bin/gs" >/dev/null 2>&1; then
+    echo "  Ghostscript не найден. Устанавливаю: brew install ghostscript"
+    brew install ghostscript || { echo "Ошибка установки. Установите вручную: brew install ghostscript"; exit 1; }
+fi
+echo "  Ghostscript: OK"
+
+if ! brew list libusb >/dev/null 2>&1; then
+    echo "  libusb не найден. Устанавливаю: brew install libusb"
+    brew install libusb || { echo "Ошибка установки. Установите вручную: brew install libusb"; exit 1; }
+fi
+echo "  libusb: OK"
+
+if ! python3 -c "import usb" 2>/dev/null; then
+    echo "  pyusb не найден. Устанавливаю: pip3 install --user pyusb"
+    pip3 install --user pyusb || { echo "Ошибка установки. Установите вручную: pip3 install --user pyusb"; exit 1; }
+fi
+echo "  pyusb: OK"
 
 # Скачиваем файлы
 echo "Скачивание файлов..."
