@@ -43,13 +43,13 @@ echo "  libusb: OK"
 
 if ! python3 -c "import usb" 2>/dev/null; then
     echo "  pyusb не найден. Устанавливаю: pip3 install --user pyusb"
-    pip3 install --user pyusb || { echo "Ошибка установки. Установите вручную: pip3 install --user pyusb"; exit 1; }
+    pip3 install --user --break-system-packages pyusb || { echo "Ошибка установки. Установите вручную: pip3 install --user --break-system-packages pyusb"; exit 1; }
 fi
 echo "  pyusb: OK"
 
 if ! python3 -c "import serial" 2>/dev/null; then
     echo "  pyserial не найден. Устанавливаю: pip3 install --user pyserial"
-    pip3 install --user pyserial || { echo "Ошибка установки. Установите вручную: pip3 install --user pyserial"; exit 1; }
+    pip3 install --user --break-system-packages pyserial || { echo "Ошибка установки. Установите вручную: pip3 install --user --break-system-packages pyserial"; exit 1; }
 fi
 echo "  pyserial: OK"
 
