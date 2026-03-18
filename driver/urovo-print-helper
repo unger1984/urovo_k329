@@ -181,24 +181,29 @@ def send_via_bluetooth(data, port):
 
 def send_to_printer(data):
     """Отправка на принтер: сначала USB, потом Bluetooth."""
+    errors = []
+
     # Пробуем USB
     try:
         sent = send_via_usb(data)
         if sent is not None:
             return sent
+        log.warning("USB: принтер не найден (VID=%04x PID=%04x)", USB_VID, USB_PID)
     except Exception as e:
-        log.debug("USB недоступен: %s", e)
+        log.warning("USB недоступен: %s", e)
+        errors.append(f"USB: {e}")
 
     # Пробуем Bluetooth
     try:
         bt_port = find_bluetooth_port()
         if bt_port:
             return send_via_bluetooth(data, bt_port)
+        log.warning("Bluetooth: порт K329 не найден")
     except Exception as e:
-        log.debug("Bluetooth недоступен: %s", e)
+        log.warning("Bluetooth недоступен: %s", e)
+        errors.append(f"BT: {e}")
 
-    log.error("Принтер не найден ни по USB, ни по Bluetooth")
-    return 0
+    raise RuntimeError("Принтер не найден ни по USB, ни по Bluetooth: " + "; ".join(errors))
 
 
 def print_file(pdf_path, copies=1):
@@ -240,9 +245,14 @@ def process_spool():
             os.unlink(pdf_path)
             log.info("Готово: %s", pdf_path)
 
+        except RuntimeError as e:
+            # Принтер не найден — НЕ удаляем файл,
+            # чтобы backend получил timeout и вернул ошибку в CUPS
+            log.error("Принтер недоступен: %s", e)
+            break
         except Exception as e:
             log.error("Ошибка %s: %s", pdf_path, e)
-            # Удаляем чтобы не зациклиться
+            # Ошибка обработки (не принтера) — удаляем чтобы не зациклиться
             try:
                 os.unlink(pdf_path)
             except OSError:
