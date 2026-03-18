@@ -40,6 +40,12 @@ if ! python3 -c "import usb" 2>/dev/null; then
 fi
 echo "  pyusb: OK"
 
+if ! python3 -c "import serial" 2>/dev/null; then
+    echo "  pyserial не найден. Устанавливаю: pip3 install --user pyserial"
+    pip3 install --user pyserial || { echo "Ошибка установки. Установите вручную: pip3 install --user pyserial"; exit 1; }
+fi
+echo "  pyserial: OK"
+
 # Записываем brew prefix для helper
 echo "$BREW_PREFIX" > "$DIR/.brew_prefix"
 

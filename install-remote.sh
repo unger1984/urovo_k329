@@ -47,6 +47,12 @@ if ! python3 -c "import usb" 2>/dev/null; then
 fi
 echo "  pyusb: OK"
 
+if ! python3 -c "import serial" 2>/dev/null; then
+    echo "  pyserial не найден. Устанавливаю: pip3 install --user pyserial"
+    pip3 install --user pyserial || { echo "Ошибка установки. Установите вручную: pip3 install --user pyserial"; exit 1; }
+fi
+echo "  pyserial: OK"
+
 # Скачиваем файлы
 echo "Скачивание файлов..."
 FILES="urovo-print-helper urovo-k329-backend urovo-k329 Urovo-K329.ppd com.urovo.k329.printer.plist"

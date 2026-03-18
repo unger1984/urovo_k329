@@ -113,15 +113,28 @@ def pdf_to_tspl_pages(pdf_path):
     return pages
 
 
-def send_to_printer(data):
+def find_bluetooth_port():
+    """Ищет Bluetooth serial порт принтера K329."""
+    import serial.tools.list_ports
+    for port in serial.tools.list_ports.comports():
+        if "K329" in port.device or "K329" in (port.description or ""):
+            return port.device
+    # Fallback — поиск по паттерну
+    for dev in glob.glob("/dev/cu.K329*"):
+        return dev
+    return None
+
+
+def send_via_usb(data):
     """Отправка через USB."""
     import usb.core
     import usb.util
 
     dev = usb.core.find(idVendor=USB_VID, idProduct=USB_PID)
     if dev is None:
-        log.error("Принтер не найден")
-        return 0
+        return None
+
+    log.info("Принтер найден по USB")
 
     if dev.is_kernel_driver_active(0):
         dev.detach_kernel_driver(0)
@@ -141,6 +154,51 @@ def send_to_printer(data):
     usb.util.dispose_resources(dev)
 
     return sent
+
+
+def send_via_bluetooth(data, port):
+    """Отправка через Bluetooth serial port."""
+    import serial
+
+    log.info("Принтер найден по Bluetooth: %s", port)
+
+    ser = serial.Serial(port, 115200, timeout=5)
+    time.sleep(0.5)  # дать время на подключение
+
+    sent = 0
+    for i in range(0, len(data), CHUNK_SIZE):
+        chunk = data[i:i + CHUNK_SIZE]
+        ser.write(chunk)
+        sent += len(chunk)
+        if sent % PAUSE_EVERY == 0:
+            time.sleep(PAUSE_SEC)
+
+    time.sleep(1)
+    ser.close()
+
+    return sent
+
+
+def send_to_printer(data):
+    """Отправка на принтер: сначала USB, потом Bluetooth."""
+    # Пробуем USB
+    try:
+        sent = send_via_usb(data)
+        if sent is not None:
+            return sent
+    except Exception as e:
+        log.debug("USB недоступен: %s", e)
+
+    # Пробуем Bluetooth
+    try:
+        bt_port = find_bluetooth_port()
+        if bt_port:
+            return send_via_bluetooth(data, bt_port)
+    except Exception as e:
+        log.debug("Bluetooth недоступен: %s", e)
+
+    log.error("Принтер не найден ни по USB, ни по Bluetooth")
+    return 0
 
 
 def print_file(pdf_path, copies=1):
